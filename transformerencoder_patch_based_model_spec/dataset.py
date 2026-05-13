@@ -4,7 +4,7 @@ import numpy as np
 
 
 MAX_TIME = 5000
-MIN_TIME = 16  # must be >= patch_time
+MIN_TIME = 32  # must be >= patch_time
 
 class SpectrogramDataset(Dataset):
     def __init__(self, dataframe):
@@ -36,14 +36,18 @@ import torch
 def collate_fn(batch):
     specs, lengths, labels = zip(*batch)
 
-    max_len = max(lengths)
+    lengths = torch.tensor(lengths, dtype=torch.long)
+    max_len = max(lengths).item()
+
     batch_size = len(specs)
-    freq_dim = specs[0].shape[1]
 
-    padded_specs = torch.zeros(batch_size, 1, freq_dim, max_len)
+    # specs are already (1, 128, T)
+    padded_specs = torch.zeros(batch_size, 1, 128, max_len)
 
-    for i, s in enumerate(specs):
-        T = s.shape[-1]
-        padded_specs[i, :, :, :T] = s
+    for i, spec in enumerate(specs):
+        T = spec.shape[-1]
+        padded_specs[i, :, :, :T] = spec
 
-    return padded_specs, torch.tensor(lengths), torch.tensor(labels)   
+    labels = torch.tensor(labels, dtype=torch.long)
+
+    return padded_specs, lengths, labels
